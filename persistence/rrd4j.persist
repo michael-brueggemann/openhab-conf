@@ -1,0 +1,22 @@
+
+// persistence strategies have a name and a definition and are referred to in the "Items" section
+Strategies {
+	// for rrd charts, we need a cron strategy
+	everyMinute : "0 * * * * ?"
+	everyHour 	: "0 0 * * * ?"
+	everyDay 	: "0 0 0 * * ?" 
+	
+	default = everyChange, everyHour
+}
+
+Items {
+	// DemoSwitch,NoOfLights,Window_GF_Toilet,Heating* : strategy = everyChange, everyMinute, restoreOnStartup
+	// * : strategy = everyChange, everyMinute, restoreOnStartup
+	
+	// save every thing
+	* : strategy = everyChange, everyMinute, restoreOnStartup
+
+}
+
+
+// https://openhabdoc.readthedocs.io/de/latest/Persistence/

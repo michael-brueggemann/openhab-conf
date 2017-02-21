@@ -1,0 +1,54 @@
+
+/****************************************************************************
+ *	bath
+ ***************************************************************************/
+
+Group	bath_group							"Bad"								<bath>				(group_apartment)
+
+// chart
+Group	bath_chart							"Chart"								<line>				(bath_group, group_chart)
+Number	bath_chart_period					"Periode"							<chart>				(bath_group)
+Number	bath_heating_stateForChart			"Status"												(bath_group, bath_chart)
+
+
+Number	bath_temperature					"Temp. [%.2f °C]"					<temperature>		(bath_group, group_temperature, bath_chart)
+Number	bath_thermostat						"Soll-Temp. [%.1f °C]"				<temperature>		(bath_group, group_thermostat, bath_chart)
+Number	bath_hyst							"Hysterese [%.1f °C]"				<temperature>		(bath_group, group_hyst)
+Number	bath_humidity						"Luftfeuchtigkeit [%.0f %%]"		<humidity>			(bath_group, group_humidity)
+Contact bath_window							"Fenster [MAP(de.map):%s]"			<window>			(bath_group, group_window)
+
+
+// heating switch
+Switch	bath_heating						"Heizung"							<heating>			(bath_group, group_heating)
+// heating state (0/1)
+Number	bath_heating_state					"Heizung Nummer"										(bath_group, group_heating_state)
+// switch to activate auto heating and keep target temperature
+Switch	bath_heating_auto					"Automatik [MAP(de.map):%s]"							(bath_group, group_heating_auto)
+// switch to temporary overwrite auto heating mode (for example for towel dryer)
+Switch	bath_heating_auto_overwrite			"Automatik überschrieben"								(bath_group, group_heating_auto_overwrite)
+// boost mode switch
+Switch	bath_heating_boost					"Boostmodus"											(bath_group, group_heating_boost)
+// time in seconds for active boost mode
+Number	bath_heating_boost_period			"Boostmodus Dauer"										(bath_group, group_heating_boost_period)
+
+
+// Sensor data [%1$ta %1$tR]
+DateTime bath_sensor_update					"Update [%1$tR]"					<clock>				(bath_group, group_sensor_update)
+Number	 bath_sensor_battery				"Battery [%.0f %%]"					<battery>			(bath_group, group_sensor_battery)
+
+
+// moving average (of heating state)
+Number	bath_heating_moveavg_duration		"Durchschnitt Dauer [%.0f Min]"		<clock>				(bath_group, group_heating_moveavg_duration)
+Number	bath_heating_moveavg_factor			"Durchschnitt Faktor [%.1f]"		<settings>			(bath_group, group_heating_moveavg_factor)
+Number	bath_heating_moveavg_chart			"Durchschnitt Hz-Status [%.2f °C]"	<temperature>		(bath_group, group_heating_moveavg_chart, bath_chart)
+
+
+
+
+// -------------------------------------------------------------------------------------------------------------------------
+// bath extension-----------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------------
+
+// towel dryer mode
+Switch	bath_heating_toweldryer				"Handtuchtrockner [MAP(de.map):%s]"	<radiator>			(bath_group)
+

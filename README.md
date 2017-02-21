@@ -10,8 +10,14 @@ This is a base set of configuration. The rules are depending on a naming convent
 
 ## Logging
 
+set log level and view logs in the console:
+
+	log:set DEBUG org.eclipse.smarthome.model.script.bath
+	log:tail
+
 Add log level for custom logger. Edit file: *userdata\etc\org.ops4j.pax.logging.cfg*
 
+	log4j.logger.org.eclipse.smarthome.model.script.bath = DEBUG
 	log4j.logger.org.eclipse.smarthome.model.script.heating = DEBUG
 	log4j.logger.org.eclipse.smarthome.model.script.simulate = DEBUG
 

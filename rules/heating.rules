@@ -1,0 +1,275 @@
+
+
+var Timer bath_toweldryer_timer1_end = null
+var Timer bath_toweldryer_timer2_start = null
+var Timer bath_toweldryer_timer2_end = null
+
+
+// -------------------------------------------------------------------------------------------------------------------------
+// Function definition: START ----------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------------
+
+
+/****************************************************************************
+ * autoHeatingMovingAverage()
+ * 
+ * @param String		Name prefix for items
+ * @param GroupItem		Group to search items in
+ * 
+ * 
+ ***************************************************************************/
+var Functions$Function2<String, GroupItem, Object> autoHeatingMovingAverage = [
+	String itemBaseName,
+	GroupItem group
+	|
+	 	logDebug("heating", "autoHeatingMovingAverage(), itemBaseName=" +itemBaseName)
+
+	 	val heating								= group.members.findFirst[name.equals(itemBaseName + "_heating")]
+	 	val OnOffType heating_auto				= group.members.findFirst[name.equals(itemBaseName + "_heating_auto")].state as OnOffType
+	 	val OnOffType heating_auto_overwrite	= group.members.findFirst[name.equals(itemBaseName + "_heating_auto_overwrite")].state as OnOffType
+	 	logDebug("heating", "   " +itemBaseName+ " - heating_auto=" +heating_auto+ ", heating_auto_overwrite=" +heating_auto_overwrite)
+
+		if (heating_auto == ON && heating_auto_overwrite == OFF) {
+		 	val Number target	= group.members.findFirst[name.equals(itemBaseName + "_thermostat")].state as DecimalType
+		 	val Number current	= group.members.findFirst[name.equals(itemBaseName + "_temperature")].state as DecimalType
+		 	val Number hyst		= group.members.findFirst[name.equals(itemBaseName + "_hyst")].state as DecimalType
+		 	
+		 	val Number averageDuration 	= group.members.findFirst[name.equals(itemBaseName + "_heating_moveavg_duration")].state as DecimalType
+		 	val Number averageFactor	= group.members.findFirst[name.equals(itemBaseName + "_heating_moveavg_factor")].state as DecimalType
+			
+			val heatingNumberItem	= group.members.findFirst[name.equals(itemBaseName + "_heating_state")]
+			val Number average = heatingNumberItem.averageSince(now.minusMinutes(averageDuration.intValue))
+			val Number movingAvgWithFactor = average * averageFactor
+			logDebug("heating", "   " +itemBaseName+ " - all items/values received, current=" +current+", movingAvgWithFactor=" +movingAvgWithFactor)
+			
+			if (heating.state == OFF) {
+				// keine Hysterese wegen average und Trägheit
+				if(current+movingAvgWithFactor < target) {
+					logDebug("heating", "   " +itemBaseName+ " - current+movingAvgWithFactor temperature < target => activate heating")
+					sendCommand(heating, ON)
+				} else {
+					logDebug("heating", "   " +itemBaseName+ " - nothing to do, temperature and/or movingAvgWithFactor to high") void
+				}
+			}
+
+			// heating.state == ON => check to deactivate
+			else {
+				// Hysterese damit die Heizung nicht sofort anspringt
+				if(current+movingAvgWithFactor > target+hyst) {
+					logDebug("heating", "   " +itemBaseName+ " - current+movingAvgWithFactor temperature > target+hyst => deactivate heating")
+					sendCommand(heating, OFF)
+				} else {
+					logDebug("heating", "   " +itemBaseName+ " - nothing to do, temperature and/or movingAvgWithFactor to cold") void
+				}
+			}
+		}
+]
+// -------------------------------------------------------------------------------------------------------------------------
+// Function definition: End ------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------------
+
+
+
+/****************************************************************************
+ * heating: initialize
+ * 
+ * wait 30 seconds and initialize all "null" items
+ ***************************************************************************/
+rule "heating: initialize"
+	when
+		System started
+	then
+		logDebug("heating", "RULE - heating: initialize")
+		
+	    createTimer(now.plusSeconds(30)) [|
+	        logDebug("heating", "   set default values if not initialized")
+			group_temperature?.members.forEach[		item|	if (item.state	== NULL)	{ sendCommand(item, 22.0) }]
+			group_thermostat?.members.forEach[		item|	if (item.state	== NULL)	{ sendCommand(item, 22.0) }]
+			group_hyst?.members.forEach[			item|	if (item.state	== NULL)	{ sendCommand(item, 0.3) }]
+			
+			group_heating?.members.forEach[					item|	if (item.state	== NULL)	{ sendCommand(item, OFF) }]
+			group_heating_state?.members.forEach[			item|	if (item.state	== NULL)	{ sendCommand(item, 0) }]
+			group_heating_stateForChart?.members.forEach[	item|	if (item.state	== NULL)	{ sendCommand(item, 20.0) }]
+			group_heating_auto?.members.forEach[			item|	if (item.state	== NULL)	{ sendCommand(item, ON) }]
+			group_heating_auto_overwrite?.members.forEach[	item|	if (item.state	== NULL)	{ sendCommand(item, OFF) }]
+	        
+			group_heating_moveavg_duration?.members.forEach[item|	if (item.state	== NULL)	{ sendCommand(item, 5) }]
+			group_heating_moveavg_factor?.members.forEach[	item|	if (item.state	== NULL)	{ sendCommand(item, 0.8) }]
+			group_heating_moveavg_chart?.members.forEach[	item|	if (item.state	== NULL)	{ sendCommand(item, 21) }]
+	    ]
+end
+
+
+
+/****************************************************************************
+ *	Heating
+ ***************************************************************************/
+rule "bath: check for heating"
+	when
+		Item bath_temperature				received update or
+		Item bath_thermostat				received update or
+		Item bath_heating					received update or
+		Item bath_heating_auto				received update or
+		Item bath_heating_auto_overwrite 	received update
+	then
+		autoHeatingMovingAverage.apply("bath", bath_group)
+		
+		// divide by 2 because of scaling to 0.5 degree in the chart
+		var Number average = bath_heating_state.averageSince(now.minusMinutes( (bath_heating_moveavg_duration.state as DecimalType).intValue ))
+		var averageForChart = average / 2
+		postUpdate(bath_heating_moveavg_chart, bath_thermostat.state as DecimalType - 1 + averageForChart)
+end
+
+rule "bath: status for heating chart"
+	when
+		Item bath_heating received update or
+		Item bath_thermostat received update
+	then	
+		// scalling to 0.5 degree in the chart
+		if (bath_heating.state == ON) {
+			sendCommand(bath_heating_state, 1);
+			sendCommand(bath_heating_stateForChart, bath_thermostat.state as DecimalType - 1 + 0.5);
+		} else {
+			sendCommand(bath_heating_state, 0);
+			sendCommand(bath_heating_stateForChart, bath_thermostat.state as DecimalType - 1 + 0);
+		}
+end
+
+
+
+//-------------------------------------------------------------------
+
+rule "bedroom: check for heating"
+	when
+		Item bedroom_temperature				received update or
+		Item bedroom_thermostat					received update or
+		Item bedroom_heating					received update or
+		Item bedroom_heating_auto				received update or
+		Item bedroom_heating_auto_overwrite 	received update
+	then
+		autoHeatingMovingAverage.apply("bedroom", bedroom_group)
+		
+		// divide by 2 because of scaling to 0.5 degree in the chart
+		var Number average = bedroom_heating_state.averageSince(now.minusMinutes( (bedroom_heating_moveavg_duration.state as DecimalType).intValue ))
+		var averageForChart = average / 2
+		postUpdate(bedroom_heating_moveavg_chart, bedroom_thermostat.state as DecimalType - 1 + averageForChart)
+end
+
+rule "bedroom: status for heating chart"
+	when
+		Item bedroom_heating received update or
+		Item bedroom_thermostat received update
+	then	
+		// scalling to 0.5 degree in the chart
+		if (bedroom_heating.state == ON) {
+			sendCommand(bedroom_heating_state, 1);
+			sendCommand(bedroom_heating_stateForChart, bedroom_thermostat.state as DecimalType - 1 + 0.5);
+		} else {
+			sendCommand(bedroom_heating_state, 0);
+			sendCommand(bedroom_heating_stateForChart, bedroom_thermostat.state as DecimalType - 1 + 0);
+		}
+end
+
+
+
+/****************************************************************************
+ * Towel dryer
+ * 
+ * Aktiviert/Deaktiviert den Handtuchtrockner
+ * Wenn aktiviert, setzt die auto_overwrite Variable damit die Heizautomatik
+ * nicht sofort den "Handtuchtrockner" deaktiviert.
+ ***************************************************************************/
+rule "bath: towel dryer - triggered by switch"
+	when
+		Item bath_heating_toweldryer received update
+	then
+		logDebug("heating", "RULE - bath: towel dryer - triggered by switch - " + bath_heating_toweldryer.state)
+		if(bath_heating_toweldryer.state == ON) {
+			sendCommand(bath_heating_auto_overwrite, ON)
+			sendCommand(bath_heating, ON)
+			
+			// deactivate first "toweldryer heating period"
+			bath_toweldryer_timer1_end = createTimer(now.plusMinutes(1)) [
+                sendCommand(bath_heating_auto_overwrite, OFF)
+			]
+
+			// activate second "toweldryer heating period"
+			bath_toweldryer_timer2_start = createTimer(now.plusMinutes(2)) [
+				sendCommand(bath_heating_auto_overwrite, ON)
+                sendCommand(bath_heating, ON)
+			]
+			// deactivate second "toweldryer heating period"
+			bath_toweldryer_timer2_end = createTimer(now.plusMinutes(3)) [
+                sendCommand(bath_heating_auto_overwrite, OFF);
+                sendCommand(bath_heating_toweldryer, OFF)
+			]
+		}
+		// deactivate towel dryer mode (for example manually by app)
+		else {
+			logDebug("heating", "  deactivate towel dryer")
+			sendCommand(bath_heating_auto_overwrite, OFF);
+			if (bath_toweldryer_timer1_end != null) {
+				bath_toweldryer_timer1_end.cancel
+				bath_toweldryer_timer1_end = null
+			}
+			if (bath_toweldryer_timer2_end != null) {
+				bath_toweldryer_timer2_end.cancel
+				bath_toweldryer_timer2_end = null
+			}
+			if (bath_toweldryer_timer2_end != null) {
+				bath_toweldryer_timer2_end.cancel
+				bath_toweldryer_timer2_end = null
+			}
+		}
+end
+
+
+
+/****************************************************************************
+ * bath: towel dryer - trigger by humidity
+ * 
+ * Aktiviert den Handtuchtrockner wenn die Luftfeuchtigkeit innerhalb der 
+ * letzten Minuten um mehr als 15 % gestiegen ist.
+ ***************************************************************************/
+rule "bath: towel dryer - trigger by humidity"
+	when
+		Item bath_humidity received update
+	then
+		logDebug("heating", "RULE - bath: towel dryer - trigger by humidity - " +bath_humidity.state)
+		var Number currentHym = bath_humidity.state as DecimalType
+		val minHym = bath_humidity.minimumSince(now.minusMinutes(20)).state as DecimalType
+		if(currentHym > minHym+15 && bath_heating_toweldryer == OFF) {
+			logDebug("heating", "   activate towel dryer because of humidity")
+			sendCommand(bath_heating_toweldryer, ON)
+		}
+end
+
+
+
+/****************************************************************************
+ * heating: corrosion protection
+ * 
+ * Korrosionsschutz. Aktiviert jede Woche alle Heizungen für 5 Minuten 
+ ***************************************************************************/
+ rule "heating: corrosion protection"
+	when
+		//Time cron "0 0 0 ? * 0 *"
+		// Every satarduay at 4:00 AM
+		Time cron "0 0 4 ? * SAT *" or 
+		Time cron "0 33 16 ? * FRI"
+		
+//		Time cron "0 45 21 * * ?"
+	then
+		logDebug("heating", "RULE - heating: corrosion protection")
+		
+		group_heating?.members.forEach(heating|
+			sendCommand(heating, ON)
+		)
+		
+		createTimer(now.plusMinutes(5)) [|
+			group_heating?.members.forEach(heating|
+				sendCommand(heating, OFF)
+			)
+		]
+end
+

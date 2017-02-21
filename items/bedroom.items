@@ -1,0 +1,44 @@
+
+/****************************************************************************
+ *	bedroom
+ ***************************************************************************/
+
+Group	bedroom_group						"Schlafzimmer"						<bedroom>			(group_apartment)
+
+// chart
+Group	bedroom_chart						"Chart"								<line>				(bedroom_group, group_chart)
+Number	bedroom_chart_period				"Periode"							<chart>				(bedroom_group)
+Number	bedroom_heating_stateForChart		"Status"												(bedroom_group, bedroom_chart)
+
+
+Number	bedroom_temperature					"Temp. [%.2f °C]"					<temperature>		(bedroom_group, group_temperature, bedroom_chart)
+Number	bedroom_thermostat					"Soll-Temp. [%.1f °C]"				<temperature>		(bedroom_group, group_thermostat, bedroom_chart)
+Number	bedroom_hyst						"Hysterese [%.1f °C]"				<temperature>		(bedroom_group, group_hyst)
+Number	bedroom_humidity					"Luftfeuchtigkeit [%.0f %%]"		<humidity>			(bedroom_group, group_humidity)
+Contact bedroom_window						"Fenster [MAP(de.map):%s]"			<window>			(bedroom_group, group_window)
+
+
+// heating switch
+Switch	bedroom_heating						"Heizung"							<heating>			(bedroom_group, group_heating)
+// heating state (0/1)
+Number	bedroom_heating_state				"Heizung Nummer"										(bedroom_group, group_heating_state)
+// switch to activate auto heating and keep target temperature
+Switch	bedroom_heating_auto				"Automatik [MAP(de.map):%s]"							(bedroom_group, group_heating_auto)
+// switch to temporary overwrite auto heating mode (for example for towel dryer)
+Switch	bedroom_heating_auto_overwrite		"Automatik überschrieben"								(bedroom_group, group_heating_auto_overwrite)
+// boost mode switch
+Switch	bedroom_heating_boost				"Boostmodus"											(bedroom_group, group_heating_boost)
+// time in seconds for active boost mode
+Number	bedroom_heating_boost_period		"Boostmodus Dauer"										(bedroom_group, group_heating_boost_period)
+
+
+// Sensor data [%1$ta %1$tR]
+DateTime bedroom_sensor_update				"Update [%1$tR]"					<clock>				(bedroom_group, group_sensor_update)
+Number	 bedroom_sensor_battery				"Battery [%.0f %%]"					<battery>			(bedroom_group, group_sensor_battery)
+
+
+// moving average (of heating state)
+Number	bedroom_heating_moveavg_duration	"Durchschnitt Dauer [%.0f Min]"		<clock>				(bedroom_group, group_heating_moveavg_duration)
+Number	bedroom_heating_moveavg_factor		"Durchschnitt Faktor [%.1f]"		<settings>			(bedroom_group, group_heating_moveavg_factor)
+Number	bedroom_heating_moveavg_chart		"Durchschnitt Hz-Status [%.2f °C]"	<temperature>		(bedroom_group, group_heating_moveavg_chart, bedroom_chart)
+

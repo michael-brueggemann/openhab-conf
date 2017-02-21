@@ -1,0 +1,61 @@
+/****************************************************************************
+ *	base
+ *  for example for group definitions
+ * 
+ * Syntax example:
+ *	<Type>	<id>				<label>					<icon>			<associatedGroups>					<device>
+ *	Number	bath_temperature	"Temperatur [%.2f °C]"	<temperature>	(bath_group, group_temperature)		{mqtt=">[mqtt:/sensors/espeasy/relais01/gpio/4:command:ON:1],>[mqtt:/sensors/espeasy/relais01/gpio/4:command:OFF:0]"}
+ ***************************************************************************/
+
+// groups by location
+Group	group_apartment		"Wohnung"	<groundfloor>
+Group	group_cellar		"Keller"	<cellar>
+Group	group_garden		"Garten"	<garden>
+Group	group_garage		"Garage"	<garage_detached_selected>
+
+// groups for charts
+Group	group_chart			"Grafiken"	<line>
+ 
+// (active) groups by item type
+Group:Number:AVG				group_temperature				"durchschn. Temperatur [%.1f °C]"	<temperature>
+Group:Number:AVG				group_thermostat				"Thermostat"						<temperature>
+Group:Number:AVG				group_hyst						"Hysterese [(%d)]"					<temperature>
+Group:Number:AVG				group_humidity					"durchschn. Luftf. [%.1f °C]"		<humidity>
+Group:Contact:OR(OPEN, CLOSED)	group_window					"Offene Fenster [(%d)]"				<contact>
+Group:Switch:OR(ON, OFF)		group_heating					"Aktive Heizungen [(%d)]"			<heating>
+Group:Switch:OR(ON, OFF)		group_heating_auto				"Automatik [(%d)]"			
+Group:Number:AVG				group_heating_auto_period		"Automatik Dauer [(%d)]"			<temperature>
+Group:Number:AVG				group_heating_auto_cooldown		"Automatik Cooldown [(%d)]"			<temperature>
+Group:Switch:OR(ON, OFF)		group_heating_auto_overwrite	"Automatik überschrieben [(%d)]"	
+Group:Switch:OR(ON, OFF)		group_heating_boost				"Boostmodus"	
+Group:Number:AVG				group_heating_boost_period		"Boostmodus [(%d)]"					<temperature>
+
+// state of heating (0/1) and state to display in chart (=line a litte bit lower than target temperature line)
+Group							group_heating_state					"Status Heizing [(%d)]"			<heating>
+Group							group_heating_stateForChart			"Aktive Heizungen [(%d)]"		<heating>
+
+// moving average (gleitender Durchschnitt) groups (of heating state)
+Group							group_heating_moveavg_duration		"xxx [(%d)]"			
+Group							group_heating_moveavg_factor		"yyy [(%d)]"			
+Group							group_heating_moveavg_chart			"Heiz durchForChart [(%d)]"			
+
+// sensor data groups
+Group							group_sensor_update				"Sensor Update[(%d)]"				<clock>
+Group							group_sensor_battery			"Battery [(%d)]"					<battery>
+
+
+// Yahoo weather
+Number Munich_Temperatur	"Aussentemperatur [%.1f °C]"				<temperature> 	{ channel="yahooweather:weather:munich:temperature" }
+
+
+// show the sunrise and sunset
+DateTime Sunrise_Time		"Sonnenaufgang [%1$tH:%1$tM]"				<sun>			{ channel="astro:sun:munich:rise#start" }
+DateTime Sunset_Time		"Sonnenuntergang [%1$tH:%1$tM]"				<moon>			{ channel="astro:sun:munich:set#start" }
+
+
+// Fritz Dect 200
+Switch FD200_Outlet1		"Switchable outlet"							<poweroutlet>	{ channel="avmfritz:FRITZ_DECT_200:1:087610084811:outlet" }
+Number FD200_Temperature1	"Actual measured temperature [%.1f °C]"						{ channel="avmfritz:FRITZ_DECT_200:1:087610084811:temperature" }
+Number FD200_Energy1		"Accumulated energy consumption [%.2f Wh]"					{ channel="avmfritz:FRITZ_DECT_200:1:087610084811:energy" }
+Number FD200_Power1			"Current power consumption [%.2f W]"						{ channel="avmfritz:FRITZ_DECT_200:1:087610084811:power" }
+

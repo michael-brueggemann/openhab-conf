@@ -1,0 +1,90 @@
+sitemap brueggemann label="Hauptmenue"
+{
+	Frame label="Anwesen"{
+		Text label="Wohnung" icon="groundfloor" {
+			Text label="Bad" icon="bath" {
+				Frame {
+					Text		item=bath_temperature		valuecolor=[<21.7="blue",>22.3="orange"]
+					Text		item=bath_humidity
+					Text		item=bath_window
+					Text		item=bath_sensor_update
+					Text		item=bath_sensor_battery
+				}
+				Frame {
+					Setpoint	item=bath_thermostat					minValue=16 	maxValue=24 	step=0.5
+					Setpoint	item=bath_heating_moveavg_duration		minValue=1		maxValue=30		step=1
+					Setpoint	item=bath_heating_moveavg_factor		minValue=0.0	maxValue=2.0	step=0.1
+					Setpoint	item=bath_hyst							minValue=0.1	maxValue=0.5	step=0.1
+					Switch		item=bath_heating
+					Switch		item=bath_heating_auto
+					Switch		item=bath_heating_auto_overwrite
+					Switch		item=bath_heating_toweldryer
+				}
+				Frame {
+					Switch		item=bath_chart_period		mappings=[0="Stunde", 1="12 Stunden", 2="Tag"]
+					Chart		item=bath_chart				period=h	refresh=30000	visibility=[bath_chart_period==0, bath_chart_period=="NULL"]
+					Chart		item=bath_chart				period=12h	refresh=300000	visibility=[bath_chart_period==1]
+					Chart		item=bath_chart				period=D	refresh=3600000	visibility=[bath_chart_period==2]
+					Chart		item=bath_humidity			period=h	refresh=60000	visibility=[bath_chart_period==0, bath_chart_period=="NULL"]
+				}
+			}
+			Text label="Schlafzimmer" icon="bedroom" {
+				Frame {
+					Text		item=bedroom_temperature	valuecolor=[<21.7="blue",>22.3="orange"]
+					Text		item=bedroom_humidity
+					Text		item=bedroom_window
+					Text		item=bedroom_sensor_update
+					Text		item=bedroom_sensor_battery
+				}
+				Frame {
+					Setpoint	item=bedroom_thermostat					minValue=10		maxValue=25		step=0.5
+					Setpoint	item=bedroom_heating_moveavg_duration	minValue=1		maxValue=30		step=1
+					Setpoint	item=bedroom_heating_moveavg_factor		minValue=0.0	maxValue=2.0	step=0.1
+					Setpoint	item=bedroom_hyst						minValue=0.1	maxValue=0.5	step=0.1
+					Switch		item=bedroom_heating
+					Switch		item=bedroom_heating_auto
+					Switch		item=bedroom_heating_auto_overwrite
+				}
+				Frame {
+					Switch		item=bedroom_chart_period	mappings=[0="Stunde", 1="12 Stunden", 2="Tag"]
+					Chart		item=bedroom_chart			period=h	refresh=30000	visibility=[bedroom_chart_period==0, bedroom_chart_period=="NULL"]
+					Chart		item=bedroom_chart			period=12h	refresh=300000	visibility=[bedroom_chart_period==1]
+					Chart		item=bedroom_chart			period=D	refresh=3600000	visibility=[bedroom_chart_period==2]
+					Chart		item=bedroom_humidity		period=h	refresh=60000	visibility=[bedroom_chart_period==0, bedroom_chart_period=="NULL"]
+				}
+			}
+		}
+		Group item=group_cellar
+		Group item=group_garden
+		Group item=group_garage
+	}
+	Frame label="Wetter (München)" {
+		Text		item=Munich_Temperatur
+		Text		item=Sunrise_Time
+		Text		item=Sunset_Time
+	}
+	Frame label="Gruppen" {
+		Text label="Gruppen" icon="firstfloor" {
+			Group item=group_heating
+			Group item=group_temperature
+			Group item=group_humidity
+			Group item=group_windows
+			Group item=group_thermostat
+		}
+	}
+	Frame label="FRITZ!DECT 200 switchable outlet" {
+        Switch	item=FD200_Outlet1		icon="poweroutlet"
+        Text	item=FD200_Temperature1	icon="temperature"
+        Text	item=FD200_Energy1		icon="energy"
+        Text	item=FD200_Power1		icon="energy"
+    }
+	Frame label="Test" {
+		Text label="Charts" icon="chart" {
+			Text	label="Bad"				icon="bath"
+			Chart	item=bath_chart		period=h	refresh=30000
+			Text	label="Schlafzimmer"	icon="bedroom"
+			Chart	item=bedroom_chart	period=h	refresh=30000
+		}
+	}
+}
+

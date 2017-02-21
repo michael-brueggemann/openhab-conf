@@ -1,0 +1,17 @@
+
+
+// find location: http://woeid.rosselliot.co.nz/lookup/
+yahooweather:weather:munich [ location=676757 ]
+
+
+// https://github.com/openhab/openhab2-addons/tree/master/addons/binding/org.openhab.binding.astro
+// Interval in seconds
+astro:sun:munich [ geolocation="48.1381,11.5726", interval=3600 ]
+
+
+ntp:ntp:demo [ hostname="nl.pool.ntp.org", refreshInterval=60, refreshNtp=30 ]
+
+
+// https://github.com/openhab/openhab2-addons/tree/master/addons/binding/org.openhab.binding.avmfritz
+// Bridge avmfritz:fritzbox:1 [ ipAddress="192.168.178.1", password ="", user="" ] {}
+

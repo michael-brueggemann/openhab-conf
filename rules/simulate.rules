@@ -1,0 +1,179 @@
+import java.util.HashMap
+ 
+// Time tick every 30 seconds
+// if you change this, change also the cron setting in the rules
+val int	lengthOfTickInSeconds = 30
+
+// speed of simulation
+val int ticksPerHour = 10
+val HashMap<String, HashMap<String, Double>> SETTINGS = newHashMap(
+	"default"	-> newHashMap(
+		"heatingDelayInMinutes" -> 60.0,		// .0 - otherwise the IDE will show a casting error
+		"temperatureLossPerHour" -> 0.1,
+		"heatingPerformencePerHour" -> 0.3
+	),
+	"bath"		-> newHashMap(
+		"heatingDelayInMinutes" -> 30.0,
+		"temperatureLossPerHour" -> 0.25,
+		"heatingPerformencePerHour" -> 0.5
+	),
+		"bedroom"		-> newHashMap(
+		"heatingPerformencePerHour" -> 0.2
+	)
+)
+
+
+
+/**
+ * Default configuration / example with documentation 
+ * 10 real minutes = 1 simulated hour (=> 1 tick = 3 simulated minutes)
+ */
+//val int		ticksPerHour = 20			// to calculate depending values
+//val int		heatingDelayInTicks = 10			// e.g. for a floor heating half an hour
+//val Number	temperatureLossPerHour = 0.1		// in degree, good isolated building or not so cold outside
+//val Number	heatingPerformencePerHour = 0.5		// in degree
+
+
+
+
+
+/****************************************************************************
+ *	simulate: initialize / shuts down
+ ***************************************************************************/
+rule "simulate: initialize"
+	when
+		System started
+	then
+		// general settings
+		group_temperature				?.members.forEach[item|postUpdate(item, 22.1)]
+		group_thermostat				?.members.forEach[item|postUpdate(item, 22.0)]
+		group_humidity					?.members.forEach[item|postUpdate(item, 60)]
+
+//		group_hyst						?.members.forEach[item|postUpdate(item, 0.3)]
+		group_heating					?.members.forEach[item|postUpdate(item, OFF)]
+		group_heating_auto				?.members.forEach[item|postUpdate(item, ON)]
+		group_heating_auto_overwrite	?.members.forEach[item|postUpdate(item, OFF)]
+//		group_heating_moveavg_duration	?.members.forEach[item|postUpdate(item, 5)]
+//		group_heating_moveavg_factor	?.members.forEach[item|postUpdate(item, 0.5)]
+		
+		group_sensor_update				?.members.forEach[item|postUpdate(item, new DateTimeType())]
+		group_sensor_battery			?.members.forEach[item|postUpdate(item, 100)]
+
+		// special settings
+		postUpdate(bath_heating_toweldryer, OFF)
+		
+		postUpdate(bedroom_temperature, 20.1)
+		postUpdate(bedroom_thermostat, 20)
+end
+
+
+rule "simulate: shutdown"
+	when
+		System shuts down
+	then
+		group_heating					?.members.forEach[item|postUpdate(item, OFF)]
+end
+
+
+/****************************************************************************
+ *	simulate: heating
+ ***************************************************************************/
+rule "simulate: heating"
+	when
+		Time cron "0/30 * * * * ?"
+	then
+		logDebug("simulate", "simulate: heating")
+		group_temperature?.members.forEach[temperature|
+			logDebug("simulate", "   item:" +temperature)
+			val String itemName = temperature.name
+			val String itemBaseName = itemName.split("_").get(0)
+
+			// get default or special settings
+			var Number heatingDelayInMinutes 	 = SETTINGS.get("default").get("heatingDelayInMinutes")
+			var Number temperatureLossPerHour 	 = SETTINGS.get("default").get("temperatureLossPerHour")
+			var Number heatingPerformencePerHour = SETTINGS.get("default").get("heatingPerformencePerHour")
+			if (SETTINGS.get(itemBaseName) != null) {
+				var HashMap<String, Double> settings = SETTINGS.get(itemBaseName)
+				if (settings.get("heatingDelayInMinutes")     != null) { heatingDelayInMinutes     = settings.get("heatingDelayInMinutes") }
+				if (settings.get("temperatureLossPerHour")    != null) { temperatureLossPerHour    = settings.get("temperatureLossPerHour") }
+				if (settings.get("heatingPerformencePerHour") != null) { heatingPerformencePerHour = settings.get("heatingPerformencePerHour") }
+			}
+			logWarn("simulate", "itemBaseName=" +itemBaseName+ ", heatingDelayInMinutes=" +heatingDelayInMinutes+ ", temperatureLossPerHour=" +temperatureLossPerHour+ ", heatingPerformencePerHour=" +heatingPerformencePerHour)
+			
+			val Number tick_temperatureLoss = temperatureLossPerHour / ticksPerHour
+			val Number tick_heatingPerformence = heatingPerformencePerHour / ticksPerHour
+			val int heatingDelayInTicks = (heatingDelayInMinutes / (60 / ticksPerHour) ).intValue         
+			logDebug("simulate", "   tick_temperatureLoss=" +tick_temperatureLoss+ ", tick_heatingPerformence=" +tick_heatingPerformence+ ", heatingDelayInTicks=" +heatingDelayInTicks)
+
+			// random temperature loss
+			// +0.5 wegen Rundung. Mögliche Ergebnisse: 0.000 ... -0.010
+			//postUpdate(temperature,  temperature.state as DecimalType - (Math::random*10 + 0.5).intValue / 1000.0 )
+			
+			// fixed temperature loss
+			logDebug("simulate", "   ### tick_temperatureLoss=" +tick_temperatureLoss)
+			postUpdate(temperature,  temperature.state as DecimalType - tick_temperatureLoss)
+			
+			// Falls ein Fehler ist soll die Temperatur nicht zu weit fallen
+			// sonst erkennt man auf den Charts nichts mehr
+//			if (temperature.state < 21) {
+//				postUpdate(temperature, 21)
+//			}
+
+			val OnOffType heating	= group_heating.members.findFirst[name.equals(itemBaseName + "_heating")].state as OnOffType
+			val DateTimeItem sensor_update	= group_sensor_update.members.findFirst[name.equals(itemBaseName + "_sensor_update")] as DateTimeItem
+					
+			if (heating == ON) {
+				// simulate delay of floor heating
+				if (heatingDelayInTicks > 0) {
+					// -5 not to hit the cron time
+					createTimer( now.plusSeconds(heatingDelayInTicks * lengthOfTickInSeconds - 5) ) [
+						postUpdate(temperature, temperature.state as DecimalType + tick_heatingPerformence)
+						postUpdate(sensor_update, new DateTimeType())
+					]
+				} else {
+						postUpdate(temperature, temperature.state as DecimalType + tick_heatingPerformence)
+						postUpdate(sensor_update, new DateTimeType())
+				}
+			}
+			
+			// sleep one second for better logfiles (no merged messages for rooms)
+			Thread::sleep(1000)
+		]
+end
+
+
+
+/****************************************************************************
+ *	simulate: room humidity
+ ***************************************************************************/
+rule "simulate: room humidity"
+	when
+		Time cron "0 * * * * ?"
+	then
+		group_humidity.members.forEach[humidity |
+			var Number rand = Math::random * 100.0 / 10 + 0.5
+			var diff = (rand).intValue -5
+			var Number newHumidity = humidity.state as DecimalType + diff
+						
+			if (newHumidity > 80) { newHumidity = 80 }
+			if (newHumidity < 40) { newHumidity = 40 }
+			postUpdate(humidity, newHumidity)
+		]
+end
+
+
+
+/****************************************************************************
+ *	simulate: battery
+ ***************************************************************************/
+rule "simulate: battery"
+	when
+		Time cron "*/30 * * * * ?"
+	then
+		var Number newValue = bath_sensor_battery.state as DecimalType - 5
+		if (newValue < 5) {
+			newValue = 100
+		}
+		postUpdate(bath_sensor_battery, newValue)
+end
+
