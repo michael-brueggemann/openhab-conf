@@ -84,6 +84,8 @@ sitemap brueggemann label="Hauptmenue"
 			Chart	item=bath_chart		period=h	refresh=30000
 			Text	label="Schlafzimmer"	icon="bedroom"
 			Chart	item=bedroom_chart	period=h	refresh=30000
+			Text	label="Keller"				icon="floor"
+			Chart	item=FD200_Temperature1		period=h	refresh=30000
 		}
 	}
 }
