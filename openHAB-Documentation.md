@@ -1,6 +1,8 @@
 
 
-## Official openHAB documentation
+## openHAB documentation
+
+This is a collection of openHAB documentation and other things used during development of this project. 
 
 http://docs.openhab.org/configuration/items.html
 http://docs.openhab.org/features/persistence.html
@@ -14,4 +16,6 @@ Check for "null" if it is an object:
 	if (SETTINGS.get(itemBaseName) != null) { ...
 
 Check for "NULL" if it is an obenHAB item:
-	if (item.state	== NULL) { ...	
+	if (item.state == NULL) { ...
+
+
